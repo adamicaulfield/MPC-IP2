@@ -24,6 +24,8 @@ public class Server {
     public static int n;
     public static int p;
     public static int total_shares = 0;
+    public static int total_zshares = 0;
+    public static int total_diffs = 0;
     public static int closed_count = 0;
     public static int triple_index;
     public static int a;
@@ -36,10 +38,16 @@ public class Server {
     public static int[] b_shares;
     public static int[] c_shares;
     public static int[][] shares_sec;
+    public static int[][] diff;
+    public static int[] zshares;
+    public static int x_prime;
+    public static int y_prime;
 
     public static void setup(int x, int y){
         Random rand = new Random();
         int[] secrets = {x, y};
+        diff = new int[2][n];
+        zshares = new int[n];
         //Get polynomial of data
         int[][] coefs = new int[2][t+1];
         System.out.println("Polynomial of two data: ");
@@ -61,7 +69,7 @@ public class Server {
         // Generate Shares of data
         shares_sec = new int[2][n];
         System.out.println(" ");
-        // System.out.println("Secret shares: ");
+        System.out.println("Secret shares: ");
         for(int party=0; party<n; party++){
             // System.out.println("Generate Secret Shares for Party #"+party);
             shares_sec[0][party] = 0;
@@ -74,10 +82,10 @@ public class Server {
                     shares_sec[i][party] = shares_sec[i][party] + coefs[i][j]*x_i;  
                 }
                 shares_sec[i][party] = shares_sec[i][party]%p;
-                // System.out.print(shares_sec[i][party]);
-                // System.out.print(" ");
+                System.out.print(shares_sec[i][party]);
+                System.out.print(" ");
             }
-            // System.out.println(" ");
+            System.out.println(" ");
         }
         System.out.println("Completed Setup");
     }
@@ -96,11 +104,11 @@ public class Server {
             int count = 0;
             while (true) {
                 Socket s = listener.accept();
-                parties.add(s);
                 if(count == 0){
                     pool.execute(new Dealer(s));
                     count++;    
                 } else {
+                    parties.add(s);
                     pool.execute(new Party(s, parties.size()));
                 }
                 
@@ -108,27 +116,44 @@ public class Server {
         }
     }
 
-    public static String reconstruct(){
-        BigDecimal[] tShares = new BigDecimal[t+1];
-        ArrayList<String> t_parties = new ArrayList<String>(t+1);
-        ArrayList<String> tShares_string = new ArrayList<String>(returnedShares);
+    public static String reconstructDiffs(){
+        //Reconstruct Shares
+        // System.out.println("");
+        // System.out.println("Reconstruct Shares to reveal secret");
+        int[] recoveredDiff = new int[2];
         for(int i=0; i<t+1; i++){
-            t_parties.add(tShares_string.get(i).split(",",2)[0]);
-            tShares[i] = new BigDecimal(tShares_string.get(i).split(",",2)[1]);
+            double rshare0 = (double)(rshares.get(0));
+            double rshare1 = (double)(rshares.get(1));
+
+            double share0val = (double)diff[i][rshares.get(0)-1];
+            double share1val = (double)diff[i][rshares.get(1)-1];
+
+            recoveredDiff[i] = (int) ((rshare0*share1val - (rshare1*share0val))/(rshare0 - rshare1)) %p;
+            // System.out.println(recoveredSecret+"="+"(("+rshare0+"*"+share1val+") - ("+rshare1+"*"+share0val+"))/("+rshare0+" - "+rshare1+")) %"+p);
         }
+        String msg = "S-C-SEND-Z-SHARE:"+recoveredDiff[0]+","+recoveredDiff[1];
+        x_prime = recoveredDiff[0];
+        y_prime = recoveredDiff[1];
+        return msg;
+    }
 
-        BigDecimal rshare0 = new BigDecimal(t_parties.get(0));
-        BigDecimal rshare1 = new BigDecimal(t_parties.get(1));
-        BigDecimal rshare2 = new BigDecimal(t_parties.get(2));
+    public static String reconstructProduct(){
+        //Reconstruct Shares
+        // System.out.println("");
+        // System.out.println("Reconstruct Shares to reveal secret");
+        double rshare0 = (double)(rshares.get(0));
+        double rshare1 = (double)(rshares.get(1));
 
-        MathContext mc = new MathContext(10);
-        BigDecimal[] lb = new BigDecimal[t+1];
-        lb[0] = (tShares[0].multiply((rshare1.multiply(rshare2)))).divide((rshare0.subtract(rshare1)).multiply((rshare0.subtract(rshare2))), mc);
-        lb[1] = (tShares[1].multiply((rshare0.multiply(rshare2)))).divide((rshare1.subtract(rshare0)).multiply((rshare1.subtract(rshare2))), mc);
-        lb[2] = (tShares[2].multiply((rshare1.multiply(rshare0)))).divide((rshare2.subtract(rshare1)).multiply((rshare2.subtract(rshare0))), mc);
+        double share0val = (double)zshares[rshares.get(0)-1];
+        double share1val = (double)zshares[rshares.get(1)-1];
 
-        BigInteger recoveredSecret = (lb[0].add(lb[1].add(lb[2]))).toBigInteger();//.mod(p);
-        return recoveredSecret.toString();
+        int product = (int) ((rshare0*share1val - (rshare1*share0val))/(rshare0 - rshare1)) %p;
+        // System.out.println(recoveredSecret+"="+"(("+rshare0+"*"+share1val+") - ("+rshare1+"*"+share0val+"))/("+rshare0+" - "+rshare1+")) %"+p);
+        product = (product + x_prime*y_prime)%p;
+
+        String msg = "S-C-PROD:"+product;
+        
+        return msg;
     }
 
     public static ArrayList<Integer> partiesToReconstruct(){
@@ -164,9 +189,9 @@ public class Server {
         System.out.println("Generated Polynomial of Triple");
 
         //Generate Shares of Triples
-        int[] a_shares = new int[n];
-        int[] b_shares = new int[n];
-        int[] c_shares = new int[n];
+        a_shares = new int[n];
+        b_shares = new int[n];
+        c_shares = new int[n];
         for(int party=0; party<n; party++){
             a_shares[party] = 0;
             b_shares[party] = 0;
@@ -184,13 +209,47 @@ public class Server {
             b_shares[party] = b_shares[party]%p;
             c_shares[party] = c_shares[party]%p; 
         }
-        System.out.println("Generated Shares of Triple");
+        System.out.println("Shares of a: ");
+        for(int party=0; party<n; party++){
+            System.out.print(a_shares[party]);
+            System.out.print(" ");
+        }
+        System.out.println(" ");
+        System.out.println(" ");
+        System.out.println("Shares of b: ");
+        for(int party=0; party<n; party++){
+            System.out.print(b_shares[party]);
+            System.out.print(" ");
+        }
+        System.out.println(" ");
+        System.out.println(" ");
+        System.out.println("Shares of c: ");
+        for(int party=0; party<n; party++){
+            System.out.print(c_shares[party]);
+            System.out.print(" ");
+        }
+        System.out.println(" ");
 
         System.out.println("Processed Triple");
     }
 
     public static String getShares(int party){
-        return "S-C-SHARES:"+a_shares[party]+","+b_shares[party]+","+c_shares[party]+","+shares_sec[0][party]+","+shares_sec[1][party];
+        System.out.println("Getting shares for Party #"+party);
+        int i = party-1;
+        return "S-C-SHARES:"+a_shares[i]+","+b_shares[i]+","+c_shares[i]+","+shares_sec[0][i]+","+shares_sec[1][i];
+    }
+
+    public static void logDiffs(String msg, int party){
+        int i = party-1;
+        diff[0][i] = Integer.parseInt((msg.split(":")[1]).split(",")[0])%p;
+        diff[1][i] = Integer.parseInt((msg.split(":")[1]).split(",")[1])%p;
+        System.out.println("Logged diffs from Party #"+i);
+    }
+
+    public static void logZShares(String msg, int party){
+        int i = party-1;
+        zshares[i] = Integer.parseInt((msg.split(":")[1]).split(",")[0])%p;
+        System.out.println("Logged Z-Share from Party #"+i);
     }
 
     private static class Dealer implements Runnable {
@@ -241,18 +300,63 @@ public class Server {
             try{
                 var in = new Scanner(socket.getInputStream());
                 var out = new PrintWriter(socket.getOutputStream(), true);
-                String m = in.nextLine();
-                if(m.startsWith("C-S-READY")){
-                    System.out.println("Received: "+m);
-                    String all_shares = getShares(party);
-                    out.println(all_shares);
+                String all_shares = getShares(party);
+                out.println(all_shares);
+                System.out.println("Sent shares to Party "+party);
+                total_shares++;
+                if(total_shares==n){
+                    for(Socket s: parties){
+                        var o_s = new PrintWriter(s.getOutputStream(), true);
+                        o_s.println("S-C-SEND-DIFFS");
+                    }
                 }
-
             } catch (Exception e) {
                 System.out.println("part 2 Error:" + socket);
                 System.out.println(e.toString());
                 System.out.println(e.getStackTrace()[0].getLineNumber());
             }
+            try{
+                var in = new Scanner(socket.getInputStream());
+                var out = new PrintWriter(socket.getOutputStream(), true);
+                String m = in.nextLine();
+                if(m.startsWith("C-S-RET-DIFFS:")){
+                    logDiffs(m,party);
+                    total_diffs++;
+                    if(total_diffs==n){
+                        for(Socket s: parties){
+                            var o_s = new PrintWriter(s.getOutputStream(), true);
+                            String msg = reconstructDiffs();
+                            o_s.println(msg);
+                        }
+                    }
+                }
+
+            } catch (Exception e) {
+                System.out.println("Collecting Diffs: Error:" + socket);
+                System.out.println(e.toString());
+                System.out.println(e.getStackTrace()[0].getLineNumber());
+            } try{
+                var in = new Scanner(socket.getInputStream());
+                var out = new PrintWriter(socket.getOutputStream(), true);
+                String m = in.nextLine();
+                if(m.startsWith("C-S-Z-SHARE:")){
+                    logZShares(m,party);
+                    total_zshares++;
+                    if(total_diffs==n){
+                        System.out.println("Sending Product...");
+                        for(Socket s: parties){
+                            var o_s = new PrintWriter(s.getOutputStream(), true);
+                            String msg = reconstructProduct();
+                            o_s.println(msg);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("Collecting Z-Shares: Error:" + socket);
+                System.out.println(e.toString());
+                System.out.println(e.getStackTrace()[0].getLineNumber());
+            } 
+
             // try{
             //     var in = new Scanner(socket.getInputStream());
             //     var out = new PrintWriter(socket.getOutputStream(), true);
@@ -290,10 +394,6 @@ public class Server {
                 try {
                     socket.close();
                 } catch (IOException e) {
-                }
-                if(closed_count == n){
-                    String recoveredSecret = reconstruct();
-                    System.out.println("Recovered Secret: "+recoveredSecret);
                 }
             }
         }

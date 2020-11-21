@@ -15,8 +15,8 @@ public class TrustedDealer {
         int p = 11;
         Random rand = new Random();
         for(int i=0; i<1000000; i++){
-            alist.add(rand.nextInt(p));
-            blist.add(rand.nextInt(p));
+            alist.add(rand.nextInt(p-1)+1);
+            blist.add(rand.nextInt(p-1)+1);
         }
 
         if (args.length != 1) {
