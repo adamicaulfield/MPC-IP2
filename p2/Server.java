@@ -35,8 +35,8 @@ public class Server {
         p = new BigInteger(modulus);
 
         Random rand = new Random();
-        BigInteger maxLimit = new BigInteger("30"); //p-1
         BigInteger minLimit = new BigInteger("1");
+        BigInteger maxLimit = p.subtract(minLimit); //p-1
         BigInteger bigInteger = maxLimit.subtract(minLimit);
         int length = maxLimit.bitLength();
         BigInteger res;
@@ -158,7 +158,7 @@ public class Server {
 
     public static void triggerPartTwo(){
         System.out.println("Secrets: "+secrets.toString());
-        setupPolynomial(n, "31");
+        setupPolynomial(n, "5004451"); //large prime
         System.out.println("Polynomials: ");
         for(int i=0; i<n; i++){
             System.out.print("#"+(i+1)+": ");

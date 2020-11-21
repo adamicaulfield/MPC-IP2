@@ -3,6 +3,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Scanner;
+import java.math.BigInteger;
 
 public class Client {
     public static void main(String[] args) throws Exception {
@@ -53,11 +54,11 @@ public class Client {
         String returnMsg = "SUM-";
         String[] twohalves = m.split(":");
         String[] shares = twohalves[1].split(",");
-        int sum = 0;
+        BigInteger sum = new BigInteger("0");
         for(String s: shares){
-            sum = sum += Integer.parseInt(s);
+            sum = sum.add(new BigInteger(s));
         }
-        returnMsg = returnMsg + twohalves[0].split("-")[1] + ":" + Integer.toString(sum);
+        returnMsg = returnMsg + twohalves[0].split("-")[1] + ":" + sum.toString();
         return returnMsg;
     }
 }
