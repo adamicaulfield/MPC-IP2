@@ -141,7 +141,7 @@ public class Prob3 {
         for(int party=0; party<n; party++){
             // System.out.println("Generate Secret Shares for Party #"+party);
             shares_sec[0][party] = 0;
-            shares_sec[0][party] = 0;
+            shares_sec[1][party] = 0;
 
             int big_i = party+1;
             for(int i=0; i<2; i++){
