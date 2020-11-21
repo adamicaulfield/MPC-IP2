@@ -1,8 +1,21 @@
-Problem 4: Completes task of Problem 3 more efficiently: remove the need of truster dealer by enabling a random number generator on the client side
-In this example, each client produces their own share of 'a' and 'b'. Their shares of 'a' and 'b' are shared with the server which reconstructs 'a' and 'b'. As a result the server can calculate c (and gets shares of 'c'), x_prime = x-a and y_prime = y-b
-The server then sends to each client a share of c, a share of x, and a share of y. Also sends x_prime and y_prime.
-The server receives back the share of the product computed by each client, reconstructs the product, and sends it to all parties.
+# Problem 4: 
+Completes task of Problem 3 more efficiently: remove the need of truster dealer by enabling a random number generator on the client side
 
-Run script run-server.sh to run the server side.
-Run script run-client.sh to run the client.
+## How to Run
+### Run Server
+- open 1 terminal window for 1 server
+- execute `./run-server.sh`
+
+### Run Client
+- open 3 terminal windows for the three clients
+- execute `./run-client.sh`
+
+### Result
+- Clients will generate their share of a and b, and will send it to the server
+- The server will accumulate shares of a and b to get: c = a*b, x' = x-a, and y' = y-b
+- The server will send shares of x,y and c, and will send the true value of x' and y' 
+= Clients will use this data to compute their share of the product z'
+- Server will accumulate shares to produce the true product z and share will all clients
+- Server disconnects with all clients
+
 
