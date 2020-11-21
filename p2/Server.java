@@ -129,6 +129,7 @@ public class Server {
         lb[0] = (tShares[0].multiply((rshare1.multiply(rshare2)))).divide((rshare0.subtract(rshare1)).multiply((rshare0.subtract(rshare2))), mc);
         lb[1] = (tShares[1].multiply((rshare0.multiply(rshare2)))).divide((rshare1.subtract(rshare0)).multiply((rshare1.subtract(rshare2))), mc);
         lb[2] = (tShares[2].multiply((rshare1.multiply(rshare0)))).divide((rshare2.subtract(rshare1)).multiply((rshare2.subtract(rshare0))), mc);
+        
         BigInteger recoveredSecret = (lb[0].add(lb[1].add(lb[2]))).toBigInteger().mod(p);
 
         System.out.println("");

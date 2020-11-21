@@ -147,21 +147,30 @@ public class Server {
             try {
                 var in = new Scanner(socket.getInputStream());
                 var out = new PrintWriter(socket.getOutputStream(), true);
-                while(state==0){
-                // while (in.hasNextLine()) {
-                    // if(state == 0){
-                        while(total_shares < 5){
-                            String m = in.nextLine();
-                            // System.out.println(m);
-                            // System.out.println((m=="GETSHARE"));
-                            if(m.startsWith("GETSHARE")){
-                                String returnshare = party+","+generateShare(party);
-                                out.println(returnshare);
-                                total_shares++;
-                            }
-                        }
-                        state++;
-                    // }
+                String returnshare = "SHARE:"+party+","+generateShare(party);
+                out.println(returnshare);
+                total_shares++;
+                if(total_shares==n){
+                	int count = 1;
+                	System.out.println("Shares needed to reconstruct: "+rshares);
+                	for(Socket s: parties){
+                		var o_s = new PrintWriter(s.getOutputStream(),true);
+                		boolean selected = false;
+                		int i=0;
+                		while(i<rshares.size()){
+                		    if(rshares.get(i)==count){
+                		        selected = true;
+                		    }
+                		    i++;
+                		}
+                		if(selected){
+                			o_s.println("SENDSHARE");
+                		}
+                		else{
+                			o_s.println("GOODBYE");
+                		}
+                		count++;
+                	}
                 }
             } catch (Exception e) {
                 System.out.println("Error:" + socket);
@@ -171,28 +180,20 @@ public class Server {
             try{
                 var in = new Scanner(socket.getInputStream());
                 var out = new PrintWriter(socket.getOutputStream(), true);
-                //pick random t parties
-                // while(state==1){
-                int i=0;
-                boolean selected = false;
-                while(i<rshares.size()){
-                    if(rshares.get(i)==party){
-                        selected = true;
-                    }
-                    i++;
-                }
-                System.out.println("Shares needed to reconstruct: "+rshares);
-                if(!selected){
-                    out.println("Your share is not needed for reconstruction. Please press CTRL+D. Goodbye");
-                    closed_count++;
+                String m = in.nextLine();
+                if(m.startsWith("GOODBYE")){
+					closed_count++;
                     socket.close();
                     return;
                 }
-                else{
-                    out.println("Send your share to reconstruct the secret");    
-                    returnedShares.add(in.nextLine());
+                else if(m.startsWith("RETSHARE:")){
+                    String shareMsg = m.split(":")[1];   
+                    returnedShares.add(shareMsg);
                     closed_count++;
-                    // return;
+                    if(closed_count == n){
+                        String recoveredSecret = reconstruct();
+                        System.out.println("Recovered Secret: "+recoveredSecret);
+                    }
                 }
                 
                 //get their shares
@@ -202,12 +203,10 @@ public class Server {
                 System.out.println(e.getStackTrace()[0].getLineNumber());
             }  finally {
                 try {
+                	var out = new PrintWriter(socket.getOutputStream(), true);
+                	out.println("GOODBYE");
                     socket.close();
                 } catch (IOException e) {
-                }
-                if(closed_count == n){
-                    String recoveredSecret = reconstruct();
-                    System.out.println("Recovered Secret: "+recoveredSecret);
                 }
             }
         }

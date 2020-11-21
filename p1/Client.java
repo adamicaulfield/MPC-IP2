@@ -5,6 +5,9 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class Client {
+    public static int i;
+    public static int share;
+
     public static void main(String[] args) throws Exception {
         if (args.length != 1) {
             System.err.println("Pass the server IP as the sole command line argument");
@@ -15,9 +18,18 @@ public class Client {
             var scanner = new Scanner(System.in);
             var in = new Scanner(socket.getInputStream());
             var out = new PrintWriter(socket.getOutputStream(), true);
-            while (scanner.hasNextLine()) {
-                out.println(scanner.nextLine());
-                System.out.println(in.nextLine());
+            String m;
+            while (true) {
+                m = in.nextLine();
+                System.out.println(m);
+                if(m.startsWith("SHARE:")){
+                    i = Integer.parseInt((m.split(":")[1]).split(",")[0]);
+                    share = Integer.parseInt((m.split(":")[1]).split(",")[1]);
+                } else if(m.startsWith("SEND")){
+                    out.println("RETSHARE:"+i+","+share);
+                } else if(m.startsWith("GOODBYE")){
+                    out.println(m);
+                }
             }
         }
     }
